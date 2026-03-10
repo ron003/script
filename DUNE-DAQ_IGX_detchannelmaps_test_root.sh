@@ -2,39 +2,87 @@
 set -e
 #set -uo pipefail
 
-if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-?" ];then
-    echo
-    echo "Usage: $0"
-    echo
-    exit
-fi
+usage() {
+  echo
+  echo "Usage: $0 [--root-dir <dir>] [--ssh]"
+  echo
+  echo "Options:"
+  echo "  --root-dir <dir>  Root working directory (default: test_root)"
+  echo "  --ssh             Use SSH clone URLs (git@github.com:)"
+  echo "  -h, --help, -?    Show this help message"
+  echo
+}
+
 set -u
 
 coredaq_ver=coredaq-v4.5.8
 TEST_ROOT=test_root
+USE_SSH=0
+GITHUB_BASE="https://github.com/"
 
-mkdir $TEST_ROOT && cd $TEST_ROOT
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --root-dir)
+      shift
+      test $# -eq 0 && { echo "Error: --root-dir requires a directory argument" >&2; usage; exit 1; }
+      TEST_ROOT="$1"
+      ;;
+    --ssh)         USE_SSH=1;;
+    -h|--help|-?)  usage; exit 0;;
+    *)             echo "Error: Unknown argument: $1" >&2; usage; exit 1;;
+  esac
+  shift
+done
 
-git clone git@github.com:DUNE-DAQ/daq-buildtools -b $coredaq_ver # normally at /cvmfs/...
-git clone git@github.com:DUNE-DAQ/daq-release    -b $coredaq_ver
+if [[ "$USE_SSH" -eq 1 ]]; then
+  GITHUB_BASE="git@github.com:"
+fi
 
-mkdir externals; install_dir=$PWD/externals
+clone_if_missing() {
+  local repo_path="$1"
+  shift
+  local repo_name="${repo_path##*/}"
+  local target_dir="${repo_name%.git}"
 
+  if [[ -d "$target_dir" ]]; then
+    echo "Warning: Directory '$target_dir' already exists; skipping clone of ${GITHUB_BASE}${repo_path}"
+    return 0
+  else
+    echo "Cloning ${GITHUB_BASE}${repo_path} into '$target_dir'..."
+  fi
+
+  git clone "${GITHUB_BASE}${repo_path}" "$@"
+}
+
+if [[ -d "$TEST_ROOT" ]]; then
+  echo "Using existing root directory: $TEST_ROOT"
+else
+  echo "Creating root directory: $TEST_ROOT"
+  mkdir -p "$TEST_ROOT"
+fi
+
+cd "$TEST_ROOT"
+
+clone_if_missing DUNE-DAQ/daq-buildtools -b $coredaq_ver # normally at /cvmfs/...
+clone_if_missing DUNE-DAQ/daq-release    -b $coredaq_ver
 
 # The 4 externals repos: Catch2, cetmodules, cetlib-except, cetlib
 
-git clone https://github.com/catchorg/Catch2 -b v2.13.10  #v3.12.0
-cd Catch2; mkdir build; cd build
-cmake -DCMAKE_INSTALL_PREFIX=$install_dir .. && make -j$(nproc) && make install
-cd ../..
+test -d externals || mkdir externals; install_dir=$PWD/install; test -d $install_dir || mkdir -p $install_dir
+cd externals
 
-git clone https://github.com/FNALssi/cetmodules -b 3.18.00
-cd cetmodules;mkdir build;cd build
+clone_if_missing FNALssi/cetmodules -b 3.18.00
+cd cetmodules;rm -fr build;mkdir $_ && cd $_
 cmake -DBUILD_DOCS=0 -DCMAKE_INSTALL_PREFIX=$PWD ..;make -j$(nproc) && make install
 cetmodules=$PWD;cd ../..
 
-git clone git@github.com:art-framework-suite/cetlib-except -b v1_07_04
-cd cetlib-except; mkdir build; cd build
+clone_if_missing catchorg/Catch2 -b v2.13.10  #v3.12.0
+cd Catch2; rm -fr build; mkdir $_ && cd $_
+cmake -DCMAKE_INSTALL_PREFIX=$install_dir .. && make -j$(nproc) && make install
+cd ../..
+
+clone_if_missing art-framework-suite/cetlib-except -b v1_07_04
+cd cetlib-except; rm -fr build; mkdir $_ && cd $_
 CMAKE_PREFIX_PATH=$cetmodules:$install_dir/lib/cmake/Catch2 \
 cmake -DCMAKE_INSTALL_PREFIX=$install_dir .. && make -j$(nproc)
 mkdir -p CMakeFiles/Export/lib/cetlib_except  # deal with uber new cmake
@@ -42,9 +90,9 @@ ln -s ../../cba13e0e966cbf40c2dc2e28d3a59f59 CMakeFiles/Export/lib/cetlib_except
 make install
 cd ../..
 
-git clone git@github.com:art-framework-suite/cetlib -b v3_18_01; cd cetlib
+clone_if_missing art-framework-suite/cetlib -b v3_18_01; cd cetlib
 patch -p1 <../daq-release/spack-repos/externals/packages/cetlib/cetlib_lite.patch
-mkdir build; cd build
+rm -fr build; mkdir $_ && cd $_
 CMAKE_PREFIX_PATH=$cetmodules:$install_dir/lib/cmake/Catch2:$install_dir/lib/cetlib_except/cmake \
 cmake -DBUILD_TESTING=FALSE -DCMAKE_INSTALL_PREFIX=$install_dir ..; make -j$(nproc)
 mkdir -p CMakeFiles/Export/lib/cetlib # deal with uber new cmake
@@ -55,7 +103,6 @@ cd ../..
 # DONE with 4 "externals"
 
 
-mkdir install
 echo ". daq-buildtools/env.sh
 #dbt-workarea-env
 export DBT_AREA_ROOT=$PWD
@@ -108,17 +155,17 @@ echo
 mkdir sourcecode; cd sourcecode
 cp ../daq-buildtools/configs/CMakeLists.txt .
 cp ../daq-release/configs/fddaq/fddaq-v4.4.8/dbt-build-order.cmake .
-git clone git@github.com:DUNE-DAQ/daq-cmake      -b $coredaq_ver
-git clone git@github.com:DUNE-DAQ/ers            -b ron/address_warnings #$coredaq_ver
-git clone git@github.com:DUNE-DAQ/logging        -b ron/address_warnings #$coredaq_ver
-#git clone git@github.com:DUNE-DAQ/detchannelmaps -b $coredaq_ver
-git clone git@github.com:ron003/detchannelmaps -b ron/run_channel_map_api
+clone_if_missing DUNE-DAQ/daq-cmake      -b $coredaq_ver
+clone_if_missing DUNE-DAQ/ers            -b ron/address_warnings #$coredaq_ver
+clone_if_missing DUNE-DAQ/logging        -b ron/address_warnings #$coredaq_ver
+#clone_if_missing DUNE-DAQ/detchannelmaps -b $coredaq_ver
+clone_if_missing ron003/detchannelmaps -b ron/run_channel_map_api
 
-git clone git@github.com:art-daq/trace -b develop #v3_17_14  # v3_20_00
+clone_if_missing art-daq/trace -b develop #v3_17_14  # v3_20_00
 grep -q trace dbt-build-order.cmake || sed -i '/daq-cmake/a\
                 "trace"' dbt-build-order.cmake
 
-git clone git@github.com:ron003/icebergchanneltowire 
+clone_if_missing ron003/icebergchanneltowire 
 grep -q icebergchanneltowire dbt-build-order.cmake || sed -i '/trace/a\
                 "icebergchanneltowire"' dbt-build-order.cmake
 cd ..
@@ -134,4 +181,3 @@ mkdir build
 mkdir log
 dbt-build
 echo "Now: cd $TEST_ROOT; . ./env.sh"
-
