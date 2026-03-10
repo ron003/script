@@ -66,49 +66,54 @@ cd "$TEST_ROOT"
 clone_if_missing DUNE-DAQ/daq-buildtools -b $coredaq_ver # normally at /cvmfs/...
 clone_if_missing DUNE-DAQ/daq-release    -b $coredaq_ver
 
-# The 4 externals repos: Catch2, cetmodules, cetlib-except, cetlib
+echo
+echo The 4 externals repos: Catch2, cetmodules, cetlib-except, cetlib
+echo
 
 test -d externals || mkdir externals; install_dir=$PWD/install; test -d $install_dir || mkdir -p $install_dir
 cd externals
 
 clone_if_missing FNALssi/cetmodules -b 3.18.00
-cd cetmodules;rm -fr build;mkdir $_ && cd $_
+cd cetmodules;test -d build || mkdir $_; cd $_
 cmake -DBUILD_DOCS=0 -DCMAKE_INSTALL_PREFIX=$PWD ..;make -j$(nproc) && make install
 cetmodules=$PWD;cd ../..
 
 clone_if_missing catchorg/Catch2 -b v2.13.10  #v3.12.0
-cd Catch2; rm -fr build; mkdir $_ && cd $_
+cd Catch2; test -d build || mkdir $_;cd $_
 cmake -DCMAKE_INSTALL_PREFIX=$install_dir .. && make -j$(nproc) && make install
 cd ../..
 
 clone_if_missing art-framework-suite/cetlib-except -b v1_07_04
-cd cetlib-except; rm -fr build; mkdir $_ && cd $_
+cd cetlib-except; test -d build || mkdir $_; cd $_
 CMAKE_PREFIX_PATH=$cetmodules:$install_dir/lib/cmake/Catch2 \
 cmake -DCMAKE_INSTALL_PREFIX=$install_dir .. && make -j$(nproc)
-mkdir -p CMakeFiles/Export/lib/cetlib_except  # deal with uber new cmake
-ln -s ../../cba13e0e966cbf40c2dc2e28d3a59f59 CMakeFiles/Export/lib/cetlib_except/cmake
+test -d CMakeFiles/Export/lib/cetlib_except || mkdir -p $_  # deal with uber new cmake
+test -h CMakeFiles/Export/lib/cetlib_except/cmake || ln -s ../../cba13e0e966cbf40c2dc2e28d3a59f59 $_
 make install
 cd ../..
 
 clone_if_missing art-framework-suite/cetlib -b v3_18_01; cd cetlib
-patch -p1 <../daq-release/spack-repos/externals/packages/cetlib/cetlib_lite.patch
-rm -fr build; mkdir $_ && cd $_
+# the presence of the build dir is the only way to know if the patch has been applied, and it needs to be applied before the build dir is made
+test -d build || patch -p1 <../../daq-release/spack-repos/externals/packages/cetlib/cetlib_lite.patch
+test -d build || mkdir $_; cd $_
 CMAKE_PREFIX_PATH=$cetmodules:$install_dir/lib/cmake/Catch2:$install_dir/lib/cetlib_except/cmake \
 cmake -DBUILD_TESTING=FALSE -DCMAKE_INSTALL_PREFIX=$install_dir ..; make -j$(nproc)
-mkdir -p CMakeFiles/Export/lib/cetlib # deal with uber new cmake
-ln -s ../../d6cf62c7c6d24d3aa088679a86b1376f CMakeFiles/Export/lib/cetlib/cmake
+test -d CMakeFiles/Export/lib/cetlib || mkdir -p $_  # deal with uber new cmake
+test -h CMakeFiles/Export/lib/cetlib/cmake || ln -s ../../d6cf62c7c6d24d3aa088679a86b1376f $_
 make install
 cd ../..
 
-# DONE with 4 "externals"
-
+cd ..
+echo
+echo DONE with 4 "externals" - pwd=`pwd`
+echo
 
 echo ". daq-buildtools/env.sh
 #dbt-workarea-env
 export DBT_AREA_ROOT=$PWD
 
 #externals:
-echo \":\$LD_LIBRARY_PATH:\" | grep -q \":$PWD/externals/lib\" || LD_LIBRARY_PATH=$PWD/externals/lib:\$LD_LIBRARY_PATH
+echo \":\${LD_LIBRARY_PATH-}:\" | grep -q \":$PWD/externals/lib\" || LD_LIBRARY_PATH=$PWD/externals/lib\${LD_LIBRARY_PATH+:\$LD_LIBRARY_PATH}
 
 for dd in \`find install -name bin\`;do
   echo \":\$PATH:\" | grep -q \":$PWD/\$dd:\" || { echo Adding \$dd to PATH; PATH=$PWD/\$dd:\$PATH;}
@@ -131,10 +136,9 @@ dbt-build() {
     logfile=build_attempt_`date|sed "s/[ :][ :]*/_/g"`.log
 
     CMAKE_PREFIX_PATH=\
-$DBT_AREA_ROOT/.venv/lib/python3.10/site-packages/pybind11:\
-$DBT_AREA_ROOT/externals/lib/cetlib/cmake:\
-$DBT_AREA_ROOT/externals/lib/cetlib_except/cmake:\
-$DBT_AREA_ROOT/externals/share/TRACE/cmake
+`echo $DBT_AREA_ROOT/.venv/lib/python3.1*/site-packages/pybind11`:\
+$DBT_AREA_ROOT/install/lib/cetlib/cmake:\
+$DBT_AREA_ROOT/install/lib/cetlib_except/cmake
 
     CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
 cmake -DCMAKE_MODULE_PATH=$DBT_ROOT/cmake -DCMAKE_INSTALL_PREFIX=$DBT_AREA_ROOT/install ../sourcecode 2>&1 | tee ../log/$logfile
@@ -152,11 +156,11 @@ echo
 echo 'Install some sourcecode in the sourcecode subdirectory...'
 echo
 
-mkdir sourcecode; cd sourcecode
+test -d sourcecode || mkdir $_; cd $_
 cp ../daq-buildtools/configs/CMakeLists.txt .
 cp ../daq-release/configs/fddaq/fddaq-v4.4.8/dbt-build-order.cmake .
 clone_if_missing DUNE-DAQ/daq-cmake      -b $coredaq_ver
-clone_if_missing DUNE-DAQ/ers            -b ron/address_warnings #$coredaq_ver
+clone_if_missing DUNE-DAQ/ers            -b coredaq-v5.5.0 #$coredaq_ver
 clone_if_missing DUNE-DAQ/logging        -b ron/address_warnings #$coredaq_ver
 #clone_if_missing DUNE-DAQ/detchannelmaps -b $coredaq_ver
 clone_if_missing ron003/detchannelmaps -b ron/run_channel_map_api
@@ -177,7 +181,7 @@ echo 'Executinging . env.sh'
 pip install pybind11
 
 cd $DBT_AREA_ROOT
-mkdir build
-mkdir log
+test -d build || mkdir $_
+test -d log || mkdir $_
 dbt-build
 echo "Now: cd $TEST_ROOT; . ./env.sh"
