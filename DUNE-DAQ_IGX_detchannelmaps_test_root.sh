@@ -168,7 +168,9 @@ clone_if_missing ron003/detchannelmaps -b ron/run_channel_map_api
 clone_if_missing art-daq/trace -b develop #v3_17_14  # v3_20_00
 grep -q trace dbt-build-order.cmake || sed -i '/daq-cmake/a\
                 "trace"' dbt-build-order.cmake
-
+# icebergchanneltowire is special with respect to it's github codespace
+# it might be checked out (by the codespace) in ".."
+test \! -h icebergchanneltowire -a -d ../icebergchanneltowire && ln -s $_ .
 clone_if_missing ron003/icebergchanneltowire 
 grep -q icebergchanneltowire dbt-build-order.cmake || sed -i '/trace/a\
                 "icebergchanneltowire"' dbt-build-order.cmake
