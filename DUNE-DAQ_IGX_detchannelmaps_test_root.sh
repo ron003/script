@@ -118,7 +118,7 @@ echo \":\${LD_LIBRARY_PATH-}:\" | grep -q \":$PWD/externals/lib\" || LD_LIBRARY_
 for dd in \`find install -name bin\`;do
   echo \":\$PATH:\" | grep -q \":$PWD/\$dd:\" || { echo Adding \$dd to PATH; PATH=$PWD/\$dd:\$PATH;}
 done
-for dd in \`find install -name lib\`;do
+for dd in \`find install -type d -name lib\*\`;do
   echo \":\$LD_LIBRARY_PATH:\" | grep -q \":$PWD/\$dd:\" || LD_LIBRARY_PATH=$PWD/\$dd:\$LD_LIBRARY_PATH
 done
 for dd in \`find install -name python\`;do
