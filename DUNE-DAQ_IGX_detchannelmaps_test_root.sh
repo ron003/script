@@ -136,7 +136,7 @@ dbt-build() {
     logfile=build_attempt_`date|sed "s/[ :][ :]*/_/g"`.log
 
     CMAKE_PREFIX_PATH=\
-`echo $DBT_AREA_ROOT/.venv/lib/python3.1*/site-packages/pybind11`:\
+`echo $DBT_AREA_ROOT/.venv/lib/python3.*/site-packages/pybind11`:\
 $DBT_AREA_ROOT/install/lib/cetlib/cmake:\
 $DBT_AREA_ROOT/install/lib/cetlib_except/cmake
 
