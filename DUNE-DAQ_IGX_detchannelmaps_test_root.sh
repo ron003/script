@@ -84,7 +84,9 @@ cmake -DCMAKE_INSTALL_PREFIX=$install_dir .. && make -j$(nproc) && make install
 cd ../..
 
 clone_if_missing art-framework-suite/cetlib-except -b v1_07_04
-cd cetlib-except; test -d build || mkdir $_; cd $_
+cd cetlib-except
+sed -i 's/std::equal(/(void)std::equal(/' cetlib_except/test/exception_test.cc # PATCH
+test -d build || mkdir $_; cd $_
 CMAKE_PREFIX_PATH=$cetmodules:$install_dir/lib/cmake/Catch2 \
 cmake -DCMAKE_INSTALL_PREFIX=$install_dir .. && make -j$(nproc)
 test -d CMakeFiles/Export/lib/cetlib_except || mkdir -p $_  # deal with uber new cmake
@@ -173,7 +175,8 @@ grep -q trace dbt-build-order.cmake || sed -i '/daq-cmake/a\
 # icebergchanneltowire is special with respect to it's github codespace
 # it might be checked out (by the codespace) in ".."
 test \! -h icebergchanneltowire -a -d ../icebergchanneltowire && ln -s $_ .
-clone_if_missing ron003/icebergchanneltowire 
+clone_if_missing ron003/icebergchanneltowire
+ln -s icebergchanneltowire/.vscode .
 grep -q icebergchanneltowire dbt-build-order.cmake || sed -i '/fddetdataformats/a\
                 "icebergchanneltowire"' dbt-build-order.cmake
 cd ..
