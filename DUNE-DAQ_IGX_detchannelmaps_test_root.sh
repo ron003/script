@@ -138,7 +138,7 @@ type trace_functions.sh >/dev/null 2>&1 && {
 }
 
 dbt-build() {
-    local DD= CLEAN=0 VERBOSE=0
+    local DD= CLEAN=0 VERBOSE=0 OPTIND=0
     while getopts ":dvc" opt; do
         case "$opt" in
           d) DD="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG=\"-O0 -g\"";;
