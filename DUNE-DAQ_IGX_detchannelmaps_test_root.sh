@@ -85,7 +85,8 @@ cd ../..
 
 clone_if_missing art-framework-suite/cetlib-except -b v1_07_04
 cd cetlib-except
-sed -i 's/std::equal(/(void)std::equal(/' cetlib_except/test/exception_test.cc # PATCH
+grep -q '(void)' cetlib_except/test/exception_test.cc\
+    || sed -i 's/std::equal(/(void)std::equal(/' $_ # PATCH
 test -d build || mkdir $_; cd $_
 CMAKE_PREFIX_PATH=$cetmodules:$install_dir/lib/cmake/Catch2 \
 cmake -DCMAKE_INSTALL_PREFIX=$install_dir .. && make -j$(nproc)
