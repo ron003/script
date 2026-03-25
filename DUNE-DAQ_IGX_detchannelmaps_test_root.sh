@@ -132,6 +132,7 @@ done
 test -d .venv || python3 -m venv --prompt dbt .venv
 unset _OLD_VIRTUAL_PATH # a tricky detail - partial \"deactivate\"
 . .venv/bin/activate"'
+type trace_functions.sh >/dev/null 2>&1 && . trace_functions.sh
 
 dbt-build() {
     pushd $DBT_AREA_ROOT/build
