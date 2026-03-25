@@ -138,7 +138,18 @@ type trace_functions.sh >/dev/null 2>&1 && {
 }
 
 dbt-build() {
-    pushd $DBT_AREA_ROOT/build
+    local DD= CLEAN=0 VERBOSE=0
+    while getopts ":dvc" opt; do
+        case "$opt" in
+            d) DD=-DCMAKE_BUILD_TYPE=Debug ;;
+            c) CLEAN=1 ;;
+            v) VERBOSE=1 ;;
+            \?) echo "Invalid option: -$OPTARG"; return 1 ;;
+        esac
+    done
+    shift $((OPTIND-1))
+    pushd $DBT_AREA_ROOT/build || return
+    ((CLEAN)) && rm -rf ../build/*
     logfile=build_attempt_`date|sed "s/[ :][ :]*/_/g"`.log
 
     CMAKE_PREFIX_PATH=\
@@ -147,9 +158,10 @@ $DBT_AREA_ROOT/install/lib/cetlib/cmake:\
 $DBT_AREA_ROOT/install/lib/cetlib_except/cmake
 
     CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
-cmake -DCMAKE_MODULE_PATH=$DBT_ROOT/cmake -DCMAKE_INSTALL_PREFIX=$DBT_AREA_ROOT/install ../sourcecode 2>&1 | tee ../log/$logfile
-
-    ( make -j$(nproc) && make install ) 2>&1 | tee -a ../log/$logfile
+cmake -DCMAKE_MODULE_PATH=$DBT_ROOT/cmake -DCMAKE_INSTALL_PREFIX=$DBT_AREA_ROOT/install $DD ../sourcecode 2>&1 | tee ../log/$logfile
+    make_flags="-j$(nproc)"
+    ((VERBOSE)) && make_flags+=" VERBOSE=1"
+    ( make $make_flags && make install ) 2>&1 | tee -a ../log/$logfile
 
     echo log file at $DBT_AREA_ROOT/log/$logfile
     popd
