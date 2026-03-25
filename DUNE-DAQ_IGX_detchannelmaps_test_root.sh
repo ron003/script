@@ -141,10 +141,10 @@ dbt-build() {
     local DD= CLEAN=0 VERBOSE=0
     while getopts ":dvc" opt; do
         case "$opt" in
-            d) DD=-DCMAKE_BUILD_TYPE=Debug ;;
-            c) CLEAN=1 ;;
-            v) VERBOSE=1 ;;
-            \?) echo "Invalid option: -$OPTARG"; return 1 ;;
+          d) DD="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG=\"-O0 -g\"";;
+          c) CLEAN=1 ;;
+          v) VERBOSE=1 ;;
+          \?) echo "Invalid option: -$OPTARG"; return 1 ;;
         esac
     done
     shift $((OPTIND-1))
