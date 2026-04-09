@@ -181,7 +181,8 @@ clone_if_missing DUNE-DAQ/daq-cmake        -b $coredaq_ver
 clone_if_missing DUNE-DAQ/ers              -b coredaq-v5.5.0 #$coredaq_ver
 clone_if_missing DUNE-DAQ/logging          -b coredaq-v5.5.0 #ron/address_warnings #$coredaq_ver
 clone_if_missing DUNE-DAQ/detdataformats   -b coredaq-v5.4.3
-clone_if_missing DUNE-DAQ/fddetdataformats -b fddaq-v5.4.3
+clone_if_missing DUNE-DAQ/fddetdataformats
+sed -i 's/bindings(\*.cpp *)/bindings(*.cpp LINK_LIBRARIES ${PROJECT_NAME})/' fddetdataformats/CMakeLists.txt
 #clone_if_missing DUNE-DAQ/detchannelmaps -b $coredaq_ver
 clone_if_missing ron003/detchannelmaps -b ron/run_channel_map_api
 
@@ -192,7 +193,7 @@ grep -q trace dbt-build-order.cmake || sed -i '/daq-cmake/a\
 # it might be checked out (by the codespace) in ".."
 test \! -h icebergchanneltowire -a -d ../icebergchanneltowire && ln -s $_ .
 clone_if_missing ron003/icebergchanneltowire
-ln -s icebergchanneltowire/.vscode .
+test -h .vscode || ln -s icebergchanneltowire/.vscode .
 grep -q icebergchanneltowire dbt-build-order.cmake || sed -i '/fddetdataformats/a\
                 "icebergchanneltowire"' dbt-build-order.cmake
 cd ..
