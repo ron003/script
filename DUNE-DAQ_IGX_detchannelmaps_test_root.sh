@@ -117,6 +117,7 @@ export DBT_AREA_ROOT=$PWD
 
 #externals:
 echo \":\${LD_LIBRARY_PATH-}:\" | grep -q \":$PWD/externals/lib\" || LD_LIBRARY_PATH=$PWD/externals/lib\${LD_LIBRARY_PATH+:\$LD_LIBRARY_PATH}
+export LD_LIBRARY_PATH
 
 for dd in \`find install -name bin\`;do
   echo \":\$PATH:\" | grep -q \":$PWD/\$dd:\" || { echo Adding \$dd to PATH; PATH=$PWD/\$dd:\$PATH;}
@@ -209,3 +210,4 @@ test -d build || mkdir $_
 test -d log || mkdir $_
 dbt-build
 echo "Now: cd $TEST_ROOT; . ./env.sh"
+
