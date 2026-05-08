@@ -148,7 +148,7 @@ dbt-build() {
         esac
     done
     shift $((OPTIND-1))
-    pushd $DBT_AREA_ROOT/build || return
+    pushd $DBT_AREA_ROOT/build >/dev/null || return
     ((CLEAN)) && rm -rf ../build/*
     logfile=build_attempt_`date|sed "s/[ :][ :]*/_/g"`.log
 
@@ -164,7 +164,7 @@ cmake -DCMAKE_MODULE_PATH=$DBT_ROOT/cmake -DCMAKE_INSTALL_PREFIX=$DBT_AREA_ROOT/
     ( make $make_flags && make install ) 2>&1 | tee -a ../log/$logfile
 
     echo log file at $DBT_AREA_ROOT/log/$logfile
-    popd
+    popd >/dev/null
 }
 ' >env.sh
 
