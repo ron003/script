@@ -182,7 +182,9 @@ clone_if_missing DUNE-DAQ/daq-cmake        -b $coredaq_ver
 clone_if_missing DUNE-DAQ/ers              -b coredaq-v5.5.0 #$coredaq_ver
 clone_if_missing DUNE-DAQ/logging          -b coredaq-v5.5.0 #ron/address_warnings #$coredaq_ver
 clone_if_missing DUNE-DAQ/detdataformats   -b coredaq-v5.4.3
-clone_if_missing DUNE-DAQ/fddetdataformats -b fddaq-v5.4.3 # w/ fddaq-v5.4.3, no longer need: sed -i 's/bindings(\*.cpp *)/bindings(*.cpp LINK_LIBRARIES ${PROJECT_NAME})/' fddetdataformats/CMakeLists.txt
+clone_if_missing DUNE-DAQ/fddetdataformats
+cd fddetdataformats; git checkout 4762b2d; rm pybindsrc/{tde*,daphne*,wibeth}.cpp
+cd ..
 #clone_if_missing DUNE-DAQ/detchannelmaps -b $coredaq_ver
 clone_if_missing ron003/detchannelmaps -b ron/run_channel_map_api
 
